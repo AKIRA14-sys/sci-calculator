@@ -33,9 +33,18 @@ fun GameHubScreen(
     var games by remember { mutableStateOf(listOf<GameAppInfo>()) }
     var searchQuery by remember { mutableStateOf("") }
     var isOverlayActive by remember { mutableStateOf(false) }
+    var showAllAppsMode by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        games = launcherManager.scanInstalledGames()
+    fun refreshAppList() {
+        games = if (showAllAppsMode) {
+            launcherManager.getAllLaunchableApps()
+        } else {
+            launcherManager.scanInstalledGames()
+        }
+    }
+
+    LaunchedEffect(showAllAppsMode) {
+        refreshAppList()
     }
 
     Column(
@@ -53,8 +62,15 @@ fun GameHubScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-            IconButton(onClick = { games = launcherManager.scanInstalledGames() }) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh Games")
+            Row {
+                FilterChip(
+                    selected = showAllAppsMode,
+                    onClick = { showAllAppsMode = !showAllAppsMode },
+                    label = { Text(if (showAllAppsMode) "All Apps" else "Games Only") }
+                )
+                IconButton(onClick = { refreshAppList() }) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh Apps")
+                }
             }
         }
 
@@ -106,7 +122,7 @@ fun GameHubScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search installed games...") },
+            placeholder = { Text("Search installed applications...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
@@ -124,7 +140,7 @@ fun GameHubScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (searchQuery.isBlank()) "No games auto-detected.\nUse 'Refresh' or launch apps directly." else "No matching games found.",
+                    text = if (searchQuery.isBlank()) "No games detected.\nToggle 'All Apps' to view all installed applications." else "No matching apps found.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -169,7 +185,7 @@ fun GameHubScreen(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = "Play")
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("PLAY")
+                                Text("LAUNCH")
                             }
                         }
                     }
